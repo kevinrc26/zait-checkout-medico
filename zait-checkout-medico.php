@@ -1,33 +1,20 @@
-// 1. Mostrar el campo en el formulario de registro nativo Y en la pestaña de WP ERP
-add_action( 'register_form', 'zait_campo_medico_registro' );
-add_action( 'erp_crm_contact_form_bottom', 'zait_campo_medico_registro' ); // Agrega el campo al CRM de WP ERP
+<?php
+/**
+ * Plugin Name: Zait - Módulo Médico (Aviso de Salud Absoluto)
+ * Version: 1.0.4
+ * Description: Fuerza un aviso médico flotante en la pantalla con alta prioridad.
+ */
 
-function zait_campo_medico_registro() {
-    $condiciones = ( isset( $_POST['zait_antecedentes'] ) ) ? sanitize_text_field( $_POST['zait_antecedentes'] ) : '';
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+// Subimos la prioridad del hook a 9999 para que sea lo último que lea la página
+add_action( 'wp_footer', 'zait_aviso_medico_pantalla', 9999 );
+function zait_aviso_medico_pantalla() {
     ?>
-    <p class="erp-form-field">
-        <label for="zait_antecedentes"><?php _e( 'Condiciones médicas o alergias (Obligatorio para el Spa)', 'zait' ) ?><br />
-        <textarea name="zait_antecedentes" id="zait_antecedentes" class="input" rows="3" style="width:100%;" placeholder="Ej: Alergia al aceite de almendras, dolor lumbar..."><?php echo esc_attr( $condiciones ); ?></textarea>
-        </label>
-    </p>
+    <div id="zait-banner-medico" style="position: fixed !important; bottom: 30px !important; left: 30px !important; background-color: #ffffff !important; border-left: 6px solid #a47c5c !important; padding: 20px !important; box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important; z-index: 9999999 !important; border-radius: 8px !important; max-width: 350px !important; display: block !important;">
+        <p style="margin: 0 !important; font-size: 14px !important; color: #222222 !important; font-family: Arial, sans-serif !important; line-height: 1.5 !important;">
+            <strong>⭐ Nota de Bienestar:</strong> Por favor, informe a su terapeuta sobre cualquier alergia o condición médica antes de iniciar su sesión.
+        </p>
+    </div>
     <?php
-}
-
-// 2. Validar que el campo no se envíe vacío (Mismo código tuyo)
-add_filter( 'registration_errors', 'zait_validar_campo_medico_registro', 10, 3 );
-function zait_validar_campo_medico_registro( $errors, $sanitized_user_login, $user_email ) {
-    if ( empty( $_POST['zait_antecedentes'] ) || ! trim( $_POST['zait_antecedentes'] ) ) {
-        $errors->add( 'zait_antecedentes_error', __( '<strong>ERROR</strong>: Por favor detalle sus condiciones de salud para garantizar una terapia segura.', 'zait' ) );
-    }
-    return $errors;
-}
-
-// 3. Guardar el dato tanto en WordPress como en los metadatos de WP ERP
-add_action( 'user_register', 'zait_guardar_campo_medico_registro' );
-add_action( 'erp_crm_create_new_contact', 'zait_guardar_campo_medico_registro' ); // Guarda si se crea desde el CRM
-
-function zait_guardar_campo_medico_registro( $user_id ) {
-    if ( ! empty( $_POST['zait_antecedentes'] ) ) {
-        update_user_meta( $user_id, 'zait_antecedentes_medicos', sanitize_textarea_field( $_POST['zait_antecedentes'] ) );
-    }
 }
