@@ -7,6 +7,8 @@ on:
 jobs:
   continuous-integration:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: 1. Clonar repositorio
         uses: actions/checkout@v4
@@ -23,7 +25,9 @@ jobs:
     name: Despliegue seguro en producción
     needs: continuous-integration
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: 1. Disparar actualización segura en WordPress
         run: |
-          curl -X POST "${{ secrets.WP_PUSHER_WEBHOOK_URL }}"
+          curl -sS "${{ secrets.WP_PUSHER_WEBHOOK_URL }}"
