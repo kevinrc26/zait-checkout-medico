@@ -1,50 +1,39 @@
 <?php
 /**
- * Plugin Name: Zait - Historial Médico en Checkout
+ * Plugin Name: Zait - Historial Médico en Registro (WP ERP)
  * Version: 1.0.0
- * Description: Componente CI/CD 1: Añade un campo obligatorio sobre condiciones de salud y alergias del paciente en la pantalla de pago.
+ * Description: Componente CI/CD 1: Añade un campo obligatorio de antecedentes médicos en el formulario de registro de usuarios del sistema.
  * Author: Tu Nombre
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+// 1. Mostrar el campo en el formulario de registro
+add_action( 'register_form', 'zait_campo_medico_registro' );
+function zait_campo_medico_registro() {
+    $condiciones = ( isset( $_POST['zait_antecedentes'] ) ) ? sanitize_text_field( $_POST['zait_antecedentes'] ) : '';
+    ?>
+    <p>
+        <label for="zait_antecedentes"><?php _e( 'Condiciones médicas o alergias (Obligatorio para el Spa)', 'zait' ) ?><br />
+        <textarea name="zait_antecedentes" id="zait_antecedentes" class="input" rows="3" style="width:100%;" placeholder="Ej: Alergia al aceite de almendras, dolor lumbar..."><?php echo esc_attr( $condiciones ); ?></textarea>
+        </label>
+    </p>
+    <?php
 }
 
-// 1. Agregar el campo de texto tipo textarea en la sección de facturación
-add_filter( 'woocommerce_checkout_fields' , 'zait_agregar_campos_medicos_checkout' );
-function zait_agregar_campos_medicos_checkout( $fields ) {
-    $fields['billing']['zait_condiciones_salud'] = array(
-        'type'        => 'textarea',
-        'label'       => 'Condiciones médicas, dolores específicos o alergias que debamos saber:',
-        'placeholder' => 'Ej: Dolor lumbar crónico, alergia al aceite de almendras, etc.',
-        'required'    => true,
-        'class'       => array('form-row-wide'),
-        'clear'       => true
-    );
-    return $fields;
-}
-
-// 2. Validar que el cliente no envíe el formulario de pago vacío
-add_action( 'woocommerce_checkout_process', 'zait_validar_campos_medicos' );
-function zait_validar_campos_medicos() {
-    if ( isset($_POST['zait_condiciones_salud']) && empty($_POST['zait_condiciones_salud']) ) {
-        wc_add_notice( '<strong>Por favor</strong>, detalle su estado físico actual o condiciones de salud para brindarle una terapia segura.', 'error' );
+// 2. Validar que el campo no se envíe vacío
+add_filter( 'registration_errors', 'zait_validar_campo_medico_registro', 10, 3 );
+function zait_validar_campo_medico_registro( $errors, $sanitized_user_login, $user_email ) {
+    if ( empty( $_POST['zait_antecedentes'] ) || ! trim( $_POST['zait_antecedentes'] ) ) {
+        $errors->add( 'zait_antecedentes_error', __( '<strong>ERROR</strong>: Por favor detalle sus condiciones de salud para garantizar una terapia segura.', 'zait' ) );
     }
+    return $errors;
 }
 
-// 3. Almacenar los datos ingresados en el meta del pedido (Base de datos)
-add_action( 'woocommerce_checkout_update_order_meta', 'zait_guardar_campos_medicos' );
-function zait_guardar_campos_medicos( $order_id ) {
-    if ( ! empty( $_POST['zait_condiciones_salud'] ) ) {
-        update_post_meta( $order_id, 'Condiciones de Salud Paciente', sanitize_text_field( $_POST['zait_condiciones_salud'] ) );
-    }
-}
-
-// 4. Mostrar la información clínica guardada al administrador dentro del pedido en el panel
-add_action( 'woocommerce_admin_order_data_after_billing_address', 'zait_mostrar_campos_medicos_en_admin', 10, 1 );
-function zait_mostrar_campos_medicos_en_admin($order){
-    $condiciones = get_post_meta( $order->get_id(), 'Condiciones de Salud Paciente', true );
-    if ( $condiciones ) {
-        echo '<p style="color:#d63636; border-left: 3px solid #d63636; padding-left: 10px; margin-top: 15px;"><strong>Historial Médico del Servicio:</strong><br>' . esc_html($condiciones) . '</p>';
+// 3. Guardar el dato en el perfil del usuario/paciente
+add_action( 'user_register', 'zait_guardar_campo_medico_registro' );
+function zait_guardar_campo_medico_registro( $user_id ) {
+    if ( ! empty( $_POST['zait_antecedentes'] ) ) {
+        update_user_meta( $user_id, 'zait_antecedentes_medicos', sanitize_textarea_field( $_POST['zait_antecedentes'] ) );
     }
 }
