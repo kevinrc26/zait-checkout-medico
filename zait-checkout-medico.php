@@ -1,19 +1,11 @@
-<?php
-/**
- * Plugin Name: Zait - Historial Médico en Registro (WP ERP)
- * Version: 1.0.0
- * Description: Componente CI/CD 1: Añade un campo obligatorio de antecedentes médicos en el formulario de registro de usuarios del sistema.
- * Author: Tu Nombre
- */
-
-if ( ! defined( 'ABSPATH' ) ) { exit; }
-
-// 1. Mostrar el campo en el formulario de registro
+// 1. Mostrar el campo en el formulario de registro nativo Y en la pestaña de WP ERP
 add_action( 'register_form', 'zait_campo_medico_registro' );
+add_action( 'erp_crm_contact_form_bottom', 'zait_campo_medico_registro' ); // Agrega el campo al CRM de WP ERP
+
 function zait_campo_medico_registro() {
     $condiciones = ( isset( $_POST['zait_antecedentes'] ) ) ? sanitize_text_field( $_POST['zait_antecedentes'] ) : '';
     ?>
-    <p>
+    <p class="erp-form-field">
         <label for="zait_antecedentes"><?php _e( 'Condiciones médicas o alergias (Obligatorio para el Spa)', 'zait' ) ?><br />
         <textarea name="zait_antecedentes" id="zait_antecedentes" class="input" rows="3" style="width:100%;" placeholder="Ej: Alergia al aceite de almendras, dolor lumbar..."><?php echo esc_attr( $condiciones ); ?></textarea>
         </label>
@@ -21,7 +13,7 @@ function zait_campo_medico_registro() {
     <?php
 }
 
-// 2. Validar que el campo no se envíe vacío
+// 2. Validar que el campo no se envíe vacío (Mismo código tuyo)
 add_filter( 'registration_errors', 'zait_validar_campo_medico_registro', 10, 3 );
 function zait_validar_campo_medico_registro( $errors, $sanitized_user_login, $user_email ) {
     if ( empty( $_POST['zait_antecedentes'] ) || ! trim( $_POST['zait_antecedentes'] ) ) {
@@ -30,8 +22,10 @@ function zait_validar_campo_medico_registro( $errors, $sanitized_user_login, $us
     return $errors;
 }
 
-// 3. Guardar el dato en el perfil del usuario/paciente
+// 3. Guardar el dato tanto en WordPress como en los metadatos de WP ERP
 add_action( 'user_register', 'zait_guardar_campo_medico_registro' );
+add_action( 'erp_crm_create_new_contact', 'zait_guardar_campo_medico_registro' ); // Guarda si se crea desde el CRM
+
 function zait_guardar_campo_medico_registro( $user_id ) {
     if ( ! empty( $_POST['zait_antecedentes'] ) ) {
         update_user_meta( $user_id, 'zait_antecedentes_medicos', sanitize_textarea_field( $_POST['zait_antecedentes'] ) );
